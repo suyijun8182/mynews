@@ -1,0 +1,72 @@
+import nc from './nc.en.js'
+
+export default {
+  app: { name: 'MyNews', by: 'Maintained by suyijun8182 and Claude Code' },
+  nav: { label: 'Main', home: 'Today', history: 'History', settings: 'Settings', lang: '中文', theme: 'Toggle theme', logout: 'Sign out' },
+  kind: { morning: 'Morning', evening: 'Evening', manual: 'On demand' },
+  issue: {
+    count: '{n} stories · {c} categories', none: 'No new articles in this issue.', points: 'Top stories', source: 'Source',
+    aiFailed: 'AI summary failed: {e}. This issue lists headlines only.',
+  },
+  time: { now: 'just now', min: '{n} min ago', hour: '{n} h ago', day: '{n} d ago' },
+  common: { loading: 'Loading…', save: 'Save', saved: 'Saved', saving: 'Saving…', testing: 'Testing…', cancel: 'Cancel', delete: 'Delete' },
+  home: {
+    welcome: 'Welcome to MyNews', needFresh: 'Connect your FreshRSS first. Every morning and evening the new articles from your feeds are collected and pushed to you.',
+    goFresh: 'Connect FreshRSS',
+    noChannel: 'No push channel is enabled yet, so issues are generated but not sent.', goChannels: 'Set up push channels',
+    older: 'Previous issue', newer: 'Next issue', pick: 'Choose an issue', exitPreview: 'Exit preview', preview: 'Preview', push: 'Push now', pushing: 'Pushing…',
+    previewTag: 'Preview, not sent', noIssue: 'No issue yet', noIssueHint: 'Next scheduled push: {m}. You can also preview or push one now.',
+    noSchedule: 'morning and evening issues are off',
+    pushed: { sent: 'Pushed {n} stories.', partial: 'Pushed {n} stories; some channels failed, see History.', failed: 'Push failed, see History.',
+      nochannel: 'Generated {n} stories, but no channel is available.', empty: 'No new articles.' },
+    pushedEmpty: 'No new articles since the last issue, nothing was sent.',
+  },
+  history: {
+    title: 'Push history', hint: 'Last {n} days are kept', issue: 'Issue', window: 'Time range', count: 'Stories', channels: 'Delivery',
+    empty: 'No new articles, not sent', noChannel: 'No channel', again: 'Send again', retry: 'Retry failed channels', none: 'No issues yet.',
+  },
+  public: { note: 'read-only link from a push message', gone: 'This link is invalid, or the issue has expired.' },
+  fresh: {
+    url: 'FreshRSS URL', urlHint: 'The FreshRSS home page, e.g. https://rss.example.com:8443, or the …/api/greader.php address.',
+    user: 'Username', pw: 'API password', howTitle: 'Where is the API password?',
+    how1: 'Sign in to FreshRSS as admin, open Settings → Authentication and tick "Allow API access".',
+    how2: 'Open Settings → Profile → API management and set an API password (separate from your login password).',
+    how3: 'Enter the username and that API password here. MyNews only reads articles and never changes read state.',
+    test: 'Test connection', ok: 'Connected, {n} categories found.',
+  },
+  set: { tab: { freshrss: 'FreshRSS', categories: 'Categories', schedule: 'Schedule', channels: 'Push channels', ai: 'AI summary', system: 'System' } },
+  cat: {
+    lead: 'Choose which FreshRSS categories to include. With nothing ticked, every category is included, new ones too.',
+    all: 'All categories', needFresh: 'Fill in and save the FreshRSS connection first.', uncat: 'Uncategorized',
+  },
+  sched: {
+    lead: 'Issues are collected and pushed automatically. Each article is sent once; if the service was down at push time it catches up within an hour.',
+    cover: { morning: 'Covers from the evening issue until now', evening: 'Covers from the morning issue until now', morning1: 'Covers the past 24 hours', evening1: 'Covers the past 24 hours' },
+    next: 'Next {t}', per: 'Stories per category', perHint: 'Only limits the push message; the full web version is never cut.',
+  },
+  ai: {
+    lead: 'When on, each message starts with 5–8 "Top stories". Any OpenAI-compatible API works: DeepSeek, Qwen, Kimi, local Ollama. If the call fails the headlines are still pushed.',
+    enable: 'Enable AI summary', presets: 'Presets:', url: 'API base URL', model: 'Model', test: 'Test with sample news', testOk: 'It works. Here are the points the AI returned.',
+  },
+  sys: {
+    public: 'Public URL', publicHint: 'When set, push messages end with a "See all" link (read-only token, no sign-in needed). Leave empty for no link.',
+    keep: 'Keep data for (days)', keepHint: 'Older issues, delivery records and cached articles are removed every night.',
+    version: 'Version', current: 'Current {v}', latest: 'Latest {v}', checkFail: 'Update check failed: {e}', update: 'Update to {v}', updating: 'Updating…',
+    dockerHint: 'For Docker, run on the server:', upToDate: 'You are on the latest version.',
+    password: 'Change password', oldPw: 'Current password', newPw: 'New password (6+ characters)', changePw: 'Change password', pwChanged: 'Password changed. Other devices must sign in again.',
+  },
+  login: { sub: 'Sign in to read the latest issue and manage pushes', user: 'Username', pw: 'Password', go: 'Sign in' },
+  setup: {
+    steps: 'Setup steps', step: { db: 'Database', admin: 'Admin', fresh: 'FreshRSS', channels: 'Channels' },
+    waitTitle: 'Connecting to the database', waitText: 'A database config is saved but cannot be reached right now (MySQL may still be starting). Retrying every 5 seconds.', retry: 'Retry now',
+    dbTitle: 'Connect MySQL', dbIntro: 'All data lives in your own MySQL. A missing database is created automatically (needs CREATE privilege).',
+    host: 'Host', port: 'Port', user: 'User', password: 'Password', database: 'Database',
+    hostHint: 'If MySQL runs on the same machine, use its LAN IP, not 127.0.0.1 (inside a container that is the container itself).',
+    code: 'Setup code', codeHint: 'Printed in the service log (docker logs mynews). Only needed when setting up from a public address.',
+    codeNeeded: 'Setting up from a public address needs the setup code from the service log.', test: 'Test connection', next: 'Next', sqlTitle: 'No account yet? Run this in MySQL:',
+    adminTitle: 'Create the admin', adminIntro: 'A single admin account signs in to this page.', pwHint: 'At least 6 characters.',
+    freshTitle: 'Connect FreshRSS', later: 'Set up later', channelsIntro: 'Choose where to push. You can skip this and set it up later in Settings → Push channels.',
+    skip: 'Skip', done: 'Finish',
+  },
+  nc,
+}

@@ -1,0 +1,16 @@
+.env
+data/
+mysql/
+node_modules/
+frontend/dist/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.db
+*.db-wal
+*.db-shm
+build/
+dist/
+# 项目说明里有明文账号密码，永远不提交
+项目说明.txt

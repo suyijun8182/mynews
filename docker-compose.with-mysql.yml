@@ -1,0 +1,43 @@
+# 我的新闻 + 自带 MySQL（适合还没有 MySQL 的用户；已有 MySQL 请用 docker-compose.yml）
+# 用法：保存为 docker-compose.yml，在旁边的 .env 文件里设置两个密码，然后 docker compose up -d
+#   .env 内容示例：
+#     MYSQL_PASSWORD=改成强密码
+#     MYSQL_ROOT_PASSWORD=改成另一个强密码
+# 不设置密码 compose 会直接报错（避免带着默认密码上网）。
+# MySQL 容器首次启动会自动建好 mynews 库和账号；连接串已写好，安装向导会跳过数据库这一步
+services:
+  mynews:
+    image: suyijun8182/mynews:latest
+    container_name: mynews
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8844:8844/tcp"
+    environment:
+      TZ: Asia/Shanghai
+      DATABASE_URL: mysql+pymysql://mynews:${MYSQL_PASSWORD:?请在 .env 里设置 MYSQL_PASSWORD}@mysql:3306/mynews?charset=utf8mb4
+      ADMIN_PASSWORD: ""
+    volumes:
+      - ./data:/app/data
+
+  mysql:
+    image: mysql:8.4
+    container_name: mynews-mysql
+    restart: unless-stopped
+    mem_limit: 512m
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_DATABASE: mynews
+      MYSQL_USER: mynews
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请在 .env 里设置 MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 .env 里设置 MYSQL_ROOT_PASSWORD}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--innodb-buffer-pool-size=128M"]
+    volumes:
+      - ./mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 20

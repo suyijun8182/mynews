@@ -1,0 +1,71 @@
+import nc from './nc.zh.js'
+
+export default {
+  app: { name: '我的新闻', by: '维护者 suyijun8182 与 Claude Code' },
+  nav: { label: '主导航', home: '本期', history: '历史', settings: '设置', lang: 'English', theme: '切换深浅色', logout: '退出登录' },
+  kind: { morning: '早报', evening: '晚报', manual: '即时推送' },
+  issue: {
+    count: '共 {n} 条 · {c} 个分类', none: '这一期没有新文章。', points: '今日要点', source: '原文',
+    aiFailed: 'AI 要点生成失败：{e}。本期只列标题。',
+  },
+  time: { now: '刚刚', min: '{n} 分钟前', hour: '{n} 小时前', day: '{n} 天前' },
+  common: { loading: '加载中…', save: '保存', saved: '已保存', saving: '保存中…', testing: '测试中…', cancel: '取消', delete: '删除' },
+  home: {
+    welcome: '欢迎使用我的新闻', needFresh: '先连接你的 FreshRSS，之后每天早晚会把订阅里的新闻汇总推送给你。', goFresh: '连接 FreshRSS',
+    noChannel: '还没有启用推送渠道，早晚报只会生成、不会推送。', goChannels: '去配置推送渠道',
+    older: '上一期', newer: '下一期', pick: '选择一期', exitPreview: '退出预览', preview: '预览', push: '立即推送', pushing: '推送中…',
+    previewTag: '预览，未推送', noIssue: '还没有生成过任何一期', noIssueHint: '下一次定时推送：{m}。也可以先预览或立即推送一期。',
+    noSchedule: '未开启早晚报',
+    pushed: { sent: '已推送 {n} 条新闻。', partial: '已推送 {n} 条，部分渠道失败，详情见历史。', failed: '推送失败，详情见历史。',
+      nochannel: '已生成 {n} 条，但没有可用的推送渠道。', empty: '没有新文章。' },
+    pushedEmpty: '上一期之后没有新文章，没有推送。',
+  },
+  history: {
+    title: '推送历史', hint: '保留最近 {n} 天', issue: '期别', window: '时间范围', count: '条数', channels: '推送结果',
+    empty: '没有新文章，未推送', noChannel: '没有推送渠道', again: '再推一次', retry: '重推失败的渠道', none: '还没有任何一期。',
+  },
+  public: { note: '只读链接，来自推送消息', gone: '链接无效，或这一期已超过保留天数被清理。' },
+  fresh: {
+    url: 'FreshRSS 地址', urlHint: '填 FreshRSS 首页地址即可，例如 https://rss.example.com:8443；也可以直接填 …/api/greader.php。',
+    user: '用户名', pw: 'API 密码', howTitle: 'API 密码在哪里设置？',
+    how1: '用管理员登录 FreshRSS，打开 设置 → 认证，勾选「允许 API 访问」。',
+    how2: '打开 设置 → 账户 → API 管理，设置一个 API 密码（和登录密码分开）。',
+    how3: '回到这里填用户名和刚才的 API 密码。本项目只读取文章，不会改动已读状态。',
+    test: '测试连接', ok: '连接成功，读到 {n} 个分类。',
+  },
+  set: { tab: { freshrss: 'FreshRSS', categories: '分类', schedule: '早晚报', channels: '推送渠道', ai: 'AI 摘要', system: '系统' } },
+  cat: {
+    lead: '选择要汇总哪些 FreshRSS 分类。不勾选任何分类就是全部汇总，新加的分类也会自动包含。',
+    all: '全部分类', needFresh: '请先在 FreshRSS 页填写并保存连接信息。', uncat: '未分类',
+  },
+  sched: {
+    lead: '到点自动汇总并推送。每篇文章只推一次；服务在推送时间停机的话，1 小时内恢复还会补发。',
+    cover: { morning: '覆盖前一天晚报之后到早报时间', evening: '覆盖早报之后到晚报时间', morning1: '覆盖过去 24 小时', evening1: '覆盖过去 24 小时' },
+    next: '下次 {t}', per: '每个分类最多列几条', perHint: '只影响推送消息的长度；网页上的完整版不截断。',
+  },
+  ai: {
+    lead: '开启后，每期消息最上面会多一段「今日要点」（5～8 条）。接口是 OpenAI 兼容格式，DeepSeek、通义千问、Kimi、本地 Ollama 都能用；调用失败时照常推送标题汇总。',
+    enable: '开启 AI 摘要', presets: '常用：', url: '接口地址（Base URL）', model: '模型', test: '用示例新闻测试', testOk: '测试成功，下面是 AI 给出的要点。',
+  },
+  sys: {
+    public: '外部访问地址', publicHint: '填了以后，推送消息末尾会附「查看全部」链接（带只读令牌，不用登录也能打开）。留空则不附链接。',
+    keep: '数据保留天数', keepHint: '超过天数的各期内容、推送记录和文章缓存每天凌晨自动清理。',
+    version: '版本', current: '当前版本 {v}', latest: '最新版本 {v}', checkFail: '检查更新失败：{e}', update: '更新到 {v}', updating: '更新中…',
+    dockerHint: 'Docker 部署请在服务器上执行：', upToDate: '已经是最新版本。',
+    password: '修改密码', oldPw: '原密码', newPw: '新密码（至少 6 位）', changePw: '修改密码', pwChanged: '密码已修改，其它设备需要重新登录。',
+  },
+  login: { sub: '登录后查看本期新闻和推送设置', user: '用户名', pw: '密码', go: '登录' },
+  setup: {
+    steps: '安装步骤', step: { db: '数据库', admin: '管理员', fresh: 'FreshRSS', channels: '推送渠道' },
+    waitTitle: '正在连接数据库', waitText: '已经保存过数据库配置，但现在连不上（MySQL 可能还在启动）。每 5 秒自动重试一次。', retry: '立即重试',
+    dbTitle: '连接 MySQL', dbIntro: '数据都存在你自己的 MySQL 里。数据库不存在时会自动创建（需要建库权限）。',
+    host: '地址', port: '端口', user: '用户名', password: '密码', database: '数据库名',
+    hostHint: 'MySQL 和本服务在同一台机器时请填局域网 IP，不要填 127.0.0.1（容器里的 127.0.0.1 是容器自己）。',
+    code: '安装码', codeHint: '在服务的启动日志里（docker logs mynews），只有从公网地址打开安装向导时才需要。',
+    codeNeeded: '从公网地址安装需要填写安装码，见服务启动日志。', test: '测试连接', next: '下一步', sqlTitle: '还没有账号？在 MySQL 里执行：',
+    adminTitle: '设置管理员', adminIntro: '只有一个管理员账号，用来登录这个网页。', pwHint: '至少 6 位。',
+    freshTitle: '连接 FreshRSS', later: '以后再设置', channelsIntro: '选择推送到哪里。可以先跳过，之后在 设置 → 推送渠道 里配置。',
+    skip: '跳过', done: '完成',
+  },
+  nc,
+}

@@ -1,0 +1,80 @@
+name: GitHub Release
+
+# 由 docker-publish.yml 在测试通过、两个架构的二进制都构建完之后调用（同一次运行，能直接取到二进制产物）。
+# 推送 v* tag 时用 tag 名；主线提交时若代码版本号还没发过 Release，也自动补上（正文取自 CHANGELOG.md 对应段落）。
+# 顺序：先建草稿 → 上传 tar 包 + SHA256SUMS → 最后才发布。Release 一旦发布就不再覆盖资产，
+# 避免每次主线提交都把已发布版本的二进制换掉（一键更新 / install.sh 都靠 SHA256SUMS 校验）。
+on:
+  workflow_call:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # 同时推 main 和 v* tag 时两次运行都会走到这里：串行执行，后到的一次会看到“已发布”直接跳过，
+    # 不会两边同时 gh release create 撞车
+    concurrency:
+      group: github-release
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with:
+          pattern: mynews-linux-*
+          merge-multiple: true
+          path: dist
+      - name: Create draft, upload assets, publish
+        run: |
+          set -euo pipefail
+          CODE_VER=$(sed -n 's/__version__ = "\(.*\)"/\1/p' backend/app/__init__.py | head -1)
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            TAG="${GITHUB_REF_NAME}"
+            # 二进制的版本号来自代码：tag 和代码对不上时，一键更新会反复提示“有新版本”
+            if [ "${TAG#v}" != "$CODE_VER" ]; then
+              echo "::error title=版本号不一致::tag ${TAG} 与代码版本 ${CODE_VER} 不一致；先改 backend/app/__init__.py 再打 tag"
+              exit 1
+            fi
+          else
+            TAG="v${CODE_VER}"
+          fi
+          VER="${TAG#v}"
+
+          # 两个架构都必须在，否则 install.sh / 一键更新会在对应架构上 404
+          for a in amd64 arm64; do
+            [ -f "dist/mynews-linux-${a}.tar.gz" ] || { echo "::error::缺少 mynews-linux-${a}.tar.gz"; exit 1; }
+          done
+          (cd dist && sha256sum mynews-linux-*.tar.gz > SHA256SUMS && cat SHA256SUMS)
+
+          STATE=$(gh release view "$TAG" --json isDraft -q .isDraft 2>/dev/null || echo none)
+          if [ "$STATE" = "false" ]; then
+            echo "Release $TAG 已发布，不覆盖它的资产，跳过"
+            exit 0
+          fi
+          if [ "$STATE" = "none" ]; then
+            NOTES=$(awk -v v="## [$VER]" 'index($0,v)==1{f=1;next} /^## \[/{if(f)exit} f' CHANGELOG.md)
+            if [ -z "$NOTES" ]; then
+              echo "::error title=CHANGELOG 缺少 [$VER] 段落::发版前先在 CHANGELOG.md 里写好这个版本的说明"
+              exit 1
+            fi
+            {
+              echo '### 升级'
+              echo
+              echo '- Docker：'
+              echo
+              echo '  ```bash'
+              echo '  docker compose pull && docker compose up -d'
+              echo '  ```'
+              echo
+              echo '- Linux 二进制：网页 系统设置 → 版本更新 → 一键更新；或重新运行一键安装命令（配置在 /etc/mynews.env，不会被覆盖）。'
+              echo
+              echo "$NOTES"
+            } > notes.md
+            gh release create "$TAG" --draft --target "${GITHUB_SHA}" --title "$TAG" --notes-file notes.md
+          fi
+          # 只有草稿才会走到这里：上次中途失败留下的草稿可以放心覆盖
+          gh release upload "$TAG" dist/mynews-linux-amd64.tar.gz dist/mynews-linux-arm64.tar.gz dist/SHA256SUMS --clobber
+          gh release edit "$TAG" --draft=false --latest

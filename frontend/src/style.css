@@ -1,0 +1,91 @@
+/* 设计规范见 design-system/mynews/MASTER.md：报纸编辑风 × 瑞士极简。组件里只用这里的语义变量 */
+:root {
+  --paper: #FAF9F6;
+  --panel: #FFFFFF;
+  --wash: #F1EEE7;
+  --ink: #1F1D1A;
+  --muted: #6B655C;
+  --rule: #E4DFD5;
+  --rule-strong: #1F1D1A;
+  --brand: #B91C1C;
+  --link: #1E40AF;
+  --ok: #15803D;
+  --warn: #B45309;
+  --bad: #B91C1C;
+  --focus: #1E40AF;
+  --serif: "Newsreader", "Songti SC", "Source Han Serif SC", "Noto Serif SC", "SimSun", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --max: 1120px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #16140F; --panel: #1E1B15; --wash: #23201A; --ink: #EDE9E1; --muted: #A39C90; --rule: #2E2A22;
+    --rule-strong: #EDE9E1; --brand: #F87171; --link: #93B4F5; --ok: #4ADE80; --warn: #FBBF24; --bad: #F87171; --focus: #93B4F5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #16140F; --panel: #1E1B15; --wash: #23201A; --ink: #EDE9E1; --muted: #A39C90; --rule: #2E2A22;
+  --rule-strong: #EDE9E1; --brand: #F87171; --link: #93B4F5; --ok: #4ADE80; --warn: #FBBF24; --bad: #F87171; --focus: #93B4F5;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font: 16px/1.7 var(--sans); -webkit-font-smoothing: antialiased; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 600; letter-spacing: -0.2px; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.faint { color: var(--muted); }
+.small { font-size: 14px; }
+.err { color: var(--bad); font-size: 14px; }
+.okc { color: var(--ok); }
+.link { color: var(--link); }
+.empty { padding: 32px 0; text-align: center; color: var(--muted); }
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+@media (max-width: 640px) { .wrap { padding: 0 16px; } }
+
+/* 按钮：主按钮墨黑底，保持报纸的克制；朱红只做强调 */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 16px;
+  border: 1px solid var(--rule-strong); border-radius: 4px; background: transparent; color: var(--ink); font: 500 14px/1 var(--sans);
+  cursor: pointer; transition: background .15s, color .15s, border-color .15s; white-space: nowrap; }
+.btn:hover { background: var(--wash); }
+.btn.primary { background: var(--ink); color: var(--paper); }
+.btn.primary:hover { background: var(--brand); border-color: var(--brand); color: #fff; }
+.btn.ghost { border-color: transparent; color: var(--muted); }
+.btn.ghost:hover { color: var(--ink); background: var(--wash); }
+.btn.sm { min-height: 34px; padding: 0 12px; font-size: 13px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn svg { flex: none; }
+@media (pointer: coarse) { .btn, .btn.sm { min-height: 44px; } }
+
+.input { width: 100%; min-height: 40px; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 4px; background: var(--panel);
+  color: var(--ink); font: 15px/1.4 var(--sans); }
+.input:focus { outline: none; border-color: var(--focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 18%, transparent); }
+textarea.input { resize: vertical; }
+.addr { font-family: var(--mono); font-size: 13px; }
+
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+.seg button { min-height: 36px; padding: 0 14px; border: 0; border-right: 1px solid var(--rule); background: transparent; color: var(--muted);
+  font: 500 13px/1.2 var(--sans); cursor: pointer; }
+.seg button:last-child { border-right: 0; }
+.seg button.on { background: var(--ink); color: var(--paper); }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label, .field > .lbl { font-size: 14px; color: var(--muted); }
+.field small { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+/* 状态小标记：颜色之外都带文字或图标，不只靠颜色区分 */
+.tag { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; line-height: 1.4; white-space: nowrap; }
+.tag.ok { color: var(--ok); }
+.tag.bad { color: var(--bad); }
+.tag.warn { color: var(--warn); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}

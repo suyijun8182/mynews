@@ -1,0 +1,19 @@
+# 我的新闻：连你已有的 MySQL（5.7+ / 8.x）
+# 用法：保存为 docker-compose.yml，然后 docker compose up -d
+# 浏览器打开 http://<本机IP>:8844，安装向导里依次填写 MySQL、管理员、FreshRSS、推送渠道
+# 还没有 MySQL：改用 docker-compose.with-mysql.yml；建库建账号的语句见 README「准备 MySQL」
+services:
+  mynews:
+    image: suyijun8182/mynews:latest        # 也可用 ghcr.io/suyijun8182/mynews:latest
+    container_name: mynews
+    restart: unless-stopped
+    ports:
+      - "8844:8844/tcp"     # Web 界面；只想让内网访问可写成 "192.168.1.10:8844:8844/tcp"
+    environment:
+      TZ: Asia/Shanghai     # 早晚报按这个时区定时
+      # MySQL 连接信息在首次打开网页时填写（保存在 ./data/db_config.json）
+      # 管理员 admin 的初始密码；留空则在安装向导里设置
+      # 「建议设置」留空时，在你打开网页设置管理员之前，能访问 8844 的人都可以抢先设置（公网访问需要日志里的安装码）
+      ADMIN_PASSWORD: ""
+    volumes:
+      - ./data:/app/data    # 保存数据库连接配置，务必保留这个卷

@@ -1,0 +1,16 @@
+.git
+.github
+**/node_modules
+**/.venv
+**/__pycache__
+**/.pytest_cache
+frontend/dist
+data
+mysql
+.env
+*.md
+design-system
+backend/tests
+backend/tests_mysql
+项目说明.txt
+docker-compose*.yml
