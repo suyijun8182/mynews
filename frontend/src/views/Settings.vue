@@ -25,7 +25,7 @@
             <div class="cats">
               <label v-for="c in cats" :key="c" class="chk"><input type="checkbox" :value="c" v-model="picked" :disabled="allCats" />{{ c }}</label>
             </div>
-            <div class="acts"><button class="btn primary" :disabled="busy" @click="saveCats">{{ t('common.save') }}</button></div>
+            <div class="acts"><button class="btn primary" :disabled="!!busy" @click="saveCats">{{ t('common.save') }}</button></div>
           </template>
           <p v-if="okMsg" class="okc small" role="status">{{ okMsg }}</p>
         </template>
@@ -41,14 +41,10 @@
               <span class="muted small">{{ t('sched.cover.' + k + (sched.morning_on && sched.evening_on ? '' : '1')) }}</span>
               <span v-if="sched.next && sched.next[k]" class="muted small num">{{ t('sched.next', { t: datetime(sched.next[k]) }) }}</span>
             </div>
-            <div class="field narrow">
-              <label for="per">{{ t('sched.per') }}</label>
-              <input id="per" class="input" type="number" min="1" max="50" v-model.number="sched.per_category" required />
-              <small>{{ t('sched.perHint') }}</small>
-            </div>
+            <p class="muted small">{{ t('sched.perHint') }}</p>
             <p v-if="err" class="err" role="alert">{{ err }}</p>
             <p v-if="okMsg" class="okc small" role="status">{{ okMsg }}</p>
-            <div class="acts"><button class="btn primary" :disabled="busy">{{ t('common.save') }}</button></div>
+            <div class="acts"><button class="btn primary" :disabled="!!busy">{{ t('common.save') }}</button></div>
           </form>
         </template>
 
@@ -57,32 +53,11 @@
           <NotifyChannels />
         </template>
 
-        <!-- AI 摘要 -->
+        <!-- 本地分类精选 -->
         <template v-else-if="tab === 'ai'">
           <h2>{{ t('set.tab.ai') }}</h2>
-          <p class="muted lead">{{ t('ai.lead') }}</p>
-          <form v-if="aiCfg" class="form" @submit.prevent="saveAI">
-            <label class="sw-row"><input type="checkbox" v-model="aiCfg.enabled" />{{ t('ai.enable') }}</label>
-            <div class="presets">
-              <span class="muted small">{{ t('ai.presets') }}</span>
-              <button v-for="p in PRESETS" :key="p.name" type="button" class="btn sm" @click="preset(p)">{{ p.name }}</button>
-            </div>
-            <div class="field"><label for="ai-url">{{ t('ai.url') }}</label>
-              <input id="ai-url" class="input addr" v-model.trim="aiCfg.base_url" placeholder="https://api.deepseek.com/v1" /></div>
-            <div class="two">
-              <div class="field"><label for="ai-key">API Key</label>
-                <input id="ai-key" class="input" type="password" v-model="aiCfg.api_key" autocomplete="new-password" /></div>
-              <div class="field"><label for="ai-model">{{ t('ai.model') }}</label>
-                <input id="ai-model" class="input addr" v-model.trim="aiCfg.model" placeholder="deepseek-chat" /></div>
-            </div>
-            <ol v-if="aiPoints.length" class="points"><li v-for="(p, i) in aiPoints" :key="i">{{ p.text }}</li></ol>
-            <p v-if="err" class="err" role="alert">{{ err }}</p>
-            <p v-if="okMsg" class="okc small" role="status">{{ okMsg }}</p>
-            <div class="acts">
-              <button type="button" class="btn" :disabled="!!busy" @click="testAI">{{ busy === 'test' ? t('common.testing') : t('ai.test') }}</button>
-              <button class="btn primary" :disabled="!!busy">{{ t('common.save') }}</button>
-            </div>
-          </form>
+          <p class="muted lead">{{ t('local.lead') }}</p>
+          <p class="muted lead">{{ t('local.ranking') }}</p>
         </template>
 
         <!-- 系统 -->
@@ -124,7 +99,7 @@
 </template>
 
 <script setup>
-import { Bot, Clock, Cog, Rss, Send, Tags } from '@lucide/vue'
+import { Clock, Cog, Rss, Send, Tags } from '@lucide/vue'
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
@@ -136,14 +111,7 @@ import { datetime } from '../format.js'
 const { t } = useI18n()
 const route = useRoute()
 const TABS = [{ id: 'freshrss', icon: Rss }, { id: 'categories', icon: Tags }, { id: 'schedule', icon: Clock },
-  { id: 'channels', icon: Send }, { id: 'ai', icon: Bot }, { id: 'system', icon: Cog }]
-// OpenAI 兼容接口的常用预设：只填地址和模型，Key 还要自己填
-const PRESETS = [
-  { name: 'DeepSeek', base_url: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
-  { name: '通义千问', base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen-plus' },
-  { name: 'Kimi', base_url: 'https://api.moonshot.cn/v1', model: 'moonshot-v1-8k' },
-  { name: 'Ollama', base_url: 'http://127.0.0.1:11434/v1', model: 'qwen2.5:7b' },
-]
+  { id: 'channels', icon: Send }, { id: 'ai', icon: Tags }, { id: 'system', icon: Cog }]
 const tab = computed(() => (TABS.some(x => x.id === route.params.tab) ? route.params.tab : 'freshrss'))
 const busy = ref('')
 const err = ref('')
@@ -178,16 +146,6 @@ async function saveCats() {
 const sched = ref(null)
 async function saveSched() { await run(async () => { sched.value = await http.put('/settings/schedule', sched.value) }) }
 
-// AI
-const aiCfg = ref(null)
-const aiPoints = ref([])
-function preset(p) { Object.assign(aiCfg.value, { base_url: p.base_url, model: p.model }) }
-async function saveAI() { await run(async () => { aiCfg.value = await http.put('/settings/ai', aiCfg.value) }) }
-async function testAI() {
-  aiPoints.value = []
-  await run(async () => { aiPoints.value = (await http.post('/settings/ai/test', aiCfg.value, { timeout: 120000 })).points }, 'test', t('ai.testOk'))
-}
-
 // 系统
 const site = ref(null)
 const ver = ref(null)
@@ -215,7 +173,6 @@ async function loadTab(x) {
   try {
     if (x === 'categories') await loadCats()
     else if (x === 'schedule') sched.value = await http.get('/settings/schedule')
-    else if (x === 'ai') aiCfg.value = await http.get('/settings/ai')
     else if (x === 'system') {
       site.value = await http.get('/settings/site')
       ver.value = await http.get('/system/version')

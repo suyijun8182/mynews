@@ -18,7 +18,21 @@
 
     <div v-if="!issue.total" class="empty">{{ t('issue.none') }}</div>
 
-    <section v-if="issue.ai_points && issue.ai_points.length" class="points" :aria-label="t('issue.points')">
+    <section v-if="issue.highlights && issue.highlights.some(s => s.items.length)" class="points" :aria-label="t('local.title')">
+      <h2>{{ t('local.title') }}</h2>
+      <div class="highlight-groups">
+        <section v-for="s in issue.highlights" :key="s.category">
+          <h3>{{ s.category }}</h3>
+          <ol>
+            <li v-for="it in s.items" :key="it.id">
+              <a v-if="it.url" :href="it.url" target="_blank" rel="noopener noreferrer">{{ it.title }}</a>
+              <span v-else>{{ it.title }}</span>
+            </li>
+          </ol>
+        </section>
+      </div>
+    </section>
+    <section v-else-if="issue.ai_points && issue.ai_points.length" class="points" :aria-label="t('issue.points')">
       <h2>{{ t('issue.points') }}</h2>
       <ol>
         <li v-for="(p, i) in issue.ai_points" :key="i">
@@ -31,6 +45,7 @@
     </section>
     <p v-else-if="issue.ai_error" class="ai-err" role="note"><AlertTriangle :size="16" aria-hidden="true" />{{ t('issue.aiFailed', { e: issue.ai_error }) }}</p>
 
+    <h2 v-if="issue.highlights && issue.total" class="all-title">{{ t('local.all') }}</h2>
     <div class="cols">
       <section v-for="s in issue.sections" :key="s.category" class="sec">
         <h2><span>{{ s.category }}</span><span class="cnt num">{{ s.items.length }}</span></h2>
@@ -70,6 +85,10 @@ const { t } = useI18n()
 .points h2, .sec h2 { margin: 0 0 12px; font-size: 22px; line-height: 1.3; }
 .points ol { margin: 0; padding-left: 1.6em; display: grid; gap: 8px; }
 .points li { line-height: 1.7; }
+.highlight-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 48px; }
+.highlight-groups h3 { margin: 0 0 8px; font-size: 17px; }
+.highlight-groups a { overflow-wrap: anywhere; }
+.all-title { margin: 28px 0 0; font-size: 22px; }
 .ref { margin-left: 6px; font-size: 13px; white-space: nowrap; }
 .ai-err { display: flex; gap: 8px; align-items: flex-start; margin: 20px 0 0; padding: 10px 12px; border-left: 3px solid var(--warn);
   background: var(--wash); color: var(--ink); font-size: 14px; line-height: 1.6; }
@@ -87,6 +106,6 @@ const { t } = useI18n()
 a.ttl:hover { color: var(--link); }
 .meta { display: flex; gap: 10px; margin-top: 2px; font-size: 13px; color: var(--muted); }
 .sum { margin: 4px 0 0; font-size: 14.5px; line-height: 1.65; color: var(--muted); }
-@media (max-width: 960px) { .cols { columns: 1; } }
+@media (max-width: 960px) { .cols { columns: 1; } .highlight-groups { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 640px) { .name { font-size: 36px; } .mast-sub { justify-content: flex-start; } .name { text-align: left; } }
 </style>

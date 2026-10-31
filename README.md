@@ -23,13 +23,13 @@ curl -fsSL https://raw.githubusercontent.com/suyijun8182/mynews/main/install.sh 
 | | |
 |---|---|
 | **早报 / 晚报** | 默认 08:00 和 20:00 各推一期，时间可改、可单独关掉。早报覆盖前一天 20:00 到当天 08:00，晚报覆盖 08:00 到 20:00 |
-| **按分类汇总** | 按 FreshRSS 的分类分组，每个分类最多列 N 条（默认 10）；链接或标题相同的只留一条；可以只选部分分类 |
-| **AI 今日要点（可选）** | 接 OpenAI 兼容接口（DeepSeek、通义千问、Kimi、本地 Ollama），在消息最上面加 5～8 条要点并附原文链接；调用失败照常推标题 |
+| **按分类汇总** | 按 FreshRSS 分类归并相似报道，每类最多精选 8 件事，仅发送代表标题和阅读链接；可以只选部分分类 |
+| **本地精选** | 综合来源覆盖、标题信息量和时效性排序，降低广告与重复转载的优先级；不调用 AI，不发送正文摘录 |
 | **14 种推送渠道** | Telegram、飞书、QQ、Bark、邮件、Pushplus、Server酱、企业微信（群机器人 / 自建应用）、钉钉、Discord、Slack、ntfy、Gotify、Webhook，和 [EasySub](https://github.com/suyijun8182/easysub) 完全一致 |
 | **自动排版与拆分** | Telegram、钉钉、Discord、Slack、企业微信 markdown 里标题是可点击的链接；超过渠道长度上限自动拆成几条并标「（2/3）」 |
 | **不漏不重** | 每篇文章只推一次；按「进入 FreshRSS 的时间」划时间窗口，不怕源的发布时间不准；推送失败自动重试 3 次，网页上可以重推 |
 | **网页版** | 本期报纸式版面、历史期翻看、推送记录；配置外部访问地址后，消息末尾附「查看全部」只读链接 |
-| **只读、加密** | 只用 FreshRSS 的 API 密码读取文章，不改已读状态；API 密码、渠道密钥、AI Key 加密存储 |
+| **只读、加密** | 只用 FreshRSS 的 API 密码读取文章，不改已读状态；API 密码、渠道密钥加密存储 |
 | **两种部署** | Docker（MySQL，首次打开网页时填写连接信息）；Linux 一键安装（SQLite，网页上一键升级） |
 
 各期内容、推送记录和文章缓存默认保留 10 天（可改），每天凌晨自动清理。
@@ -105,21 +105,17 @@ FLUSH PRIVILEGES;
 - 只开一个时，它覆盖过去 24 小时。时区由 `TZ` 决定（默认 `Asia/Shanghai`）。
 - 服务在推送时间停了，1 小时内恢复会补发；同一期不会推两遍。
 - 没有新文章时不推送，只在历史里记一笔。
-- **每个分类最多列几条**只影响推送消息；网页上的完整版不截断。
+- 每个类别最多精选 **8 件事**，不足不凑数；网页上的完整版保留全部报道。旧的每类条数设置不再影响推送。
 
 推送消息的样子：
 
 ```
 我的新闻 · 早报 · 10月29日 周四
-共 42 条，来自 8 个分类
-
-【今日要点】（开启 AI 时才有）
-1. ……
+共 42 篇报道，来自 8 个分类，精选 24 件事
 
 【科技】
-1. 标题 — 来源
-   一句话摘要
-   链接
+1. 代表事件标题
+   阅读链接
 ……
 查看全部 42 条 → https://你的地址/i/12?t=…
 ```
@@ -137,13 +133,15 @@ FLUSH PRIVILEGES;
 | 飞书、QQ、Bark、ntfy、Gotify、Pushplus、Server酱 | 纯文本 | 按各自上限 |
 | 邮件、Webhook | 纯文本 | 不拆分 |
 
-## AI 今日要点（可选）
+## 本地分类精选
 
-**设置 → AI 摘要** 里开启，填接口地址、API Key 和模型。页面上有 DeepSeek、通义千问、Kimi、Ollama 的预设，点一下自动填地址和模型。
+每类最多 8 件事，只发送清理后的代表标题与阅读链接。网页版上方展示同一份精选，下方保留全部报道及原有摘要。
 
-- 接口是 OpenAI 兼容的 `/chat/completions`；每期最多把 150 条（各分类轮流取）交给模型。
-- 模型给出 5～8 条要点，每条附依据的原文链接。
-- 调用失败（欠费、超时）时照常推送标题汇总，并在消息里注明。
+- 同链接、同标题或高度相似的标题归为同一事件；数字、主体或结果不同的报道保守地分开。规则不生成新事实，措辞差异较大的同一事件可能无法合并。
+- 优先选择多来源覆盖、标题信息更充足且较新的事件；同站转载不增加来源覆盖权重，广告和空泛标题降低优先级。
+- 来源覆盖按链接站点估算，不代表已核实媒体独立性；标题信息量采用字数等启发式指标，无法替代编辑判断。
+- 全程在本地运行，不调用 AI；原来保存的 AI 配置不再自动使用。查看 **设置 → 分类精选** 可了解规则。
+- 网页保留所选分类窗口内全部报道，包括同事件的不同报道。整期处理过的报道统一归入本期，不会在下一期重复积累。
 
 ## 「查看全部」链接
 
@@ -151,7 +149,7 @@ FLUSH PRIVILEGES;
 
 ## 环境变量
 
-FreshRSS、早晚报、渠道、AI 都在网页上配置。环境变量只有这些（完整说明见 [.env.example](./.env.example)）：
+FreshRSS、早晚报和渠道都在网页上配置。环境变量只有这些（完整说明见 [.env.example](./.env.example)）：
 
 | 变量 | 默认 | 说明 |
 |---|---|---|
@@ -206,8 +204,8 @@ cd frontend && npm ci && npm run dev
 ### Features
 
 - **Morning and evening issues** at 08:00 and 20:00 by default (editable, each can be turned off). The morning issue covers 20:00 the day before to 08:00; the evening issue covers 08:00 to 20:00.
-- **Grouped by FreshRSS category**, up to N stories per category in the message (10 by default). Duplicate links or titles are merged, and you can pick which categories to include.
-- **Optional AI "Top stories"** through any OpenAI-compatible API (DeepSeek, Qwen, Kimi, local Ollama). If the call fails, headlines are still pushed.
+- **Local category highlights**: similar reports are grouped into up to 8 events per category. Pushes contain representative headlines and links; all reports remain available on the web.
+- **No AI calls**: events are ranked locally by publisher coverage, headline information and freshness. Ads and reposts receive lower priority. Conservative title matching can miss differently worded reports about the same event.
 - **14 channels**, the same as [EasySub](https://github.com/suyijun8182/easysub). Titles are clickable links on Telegram, DingTalk, Discord, Slack and WeCom markdown. Long digests are split automatically.
 - **Each article is sent once.** Windows are based on when articles entered FreshRSS. Failed sends are retried 3 times and can be re-sent from the web UI.
 - **Web UI**: a newspaper-style page for the latest issue, browsing past issues, and delivery history. With a public URL set, messages end with a read-only "See all" link.

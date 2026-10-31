@@ -48,7 +48,7 @@ def test_large_digest_and_legacy_content_upgrade():
                 "sections": [{"category": "科技", "items": [
                     {"title": f"新闻 {i}", "summary": "新闻摘要" * 30} for i in range(473)]}],
                 "ai_points": None, "ai_error": None}
-        expected = json.dumps({"sections": data["sections"]}, ensure_ascii=False)
+        expected = json.dumps({"sections": data["sections"], "highlights": None}, ensure_ascii=False)
         assert len(expected.encode("utf-8")) > 65535
         # Recreate an old deployment; the real save path must reproduce DataError.
         with database.engine.begin() as conn:
@@ -65,7 +65,7 @@ def test_large_digest_and_legacy_content_upgrade():
         columns = {c["name"]: c["type"] for c in inspect(database.engine).get_columns("issues")}
         assert isinstance(columns["content"], LONGTEXT)
         with database.session() as db:
-            assert db.get(Issue, old_id).content == '{"sections": []}'
+            assert json.loads(db.get(Issue, old_id).content) == {"sections": [], "highlights": None}
             large = digest.save(db, data)
             db.commit()
             large_id = large.id

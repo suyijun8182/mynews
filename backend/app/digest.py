@@ -1,4 +1,4 @@
-"""早晚报：划时间窗口 → 从 FreshRSS 同步文章 → 去重分组 → （可选）AI 要点 → 存成一期 → 按渠道排版拆分推送。
+"""早晚报：划时间窗口 → 从 FreshRSS 同步文章 → 分类与本地精选 → 存成一期 → 按渠道排版拆分推送。
 
 时间窗口按“进入 FreshRSS 的时间”算：
 - 早报 / 晚报：从上一个已开启的推送时间到本次推送时间。早晚报都开时，早报覆盖前一天 20:00～今天 08:00，
@@ -6,7 +6,7 @@
 - 立即推送：从上一期的结束时间到现在（最多往前 24 小时）。
 同一篇文章只推一次：进了某一期就记下 first_issue，之后各期都跳过它（网页预览不记）。
 
-一期里存全部文章（网页版不截断）；推送消息里每个分类最多列 per_category 条。
+一期保存全部报道及本地精选；推送每个类别最多 8 件事，仅标题与链接。
 """
 import json
 import re
@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import delete, select
 
-from app import ai, freshrss, notify, prefs
+from app import freshrss, highlights, notify, prefs
 from app.config import get_settings
 from app.models import Article, Delivery, Issue
 
@@ -79,23 +79,15 @@ def sync(db, since: int, client: freshrss.Client | None = None) -> int:
     return new
 
 
-def _norm(s: str) -> str:
-    return re.sub(r"[\W_]+", "", (s or "").lower())
-
-
 def collect(db, start: int, end: int) -> list[Article]:
-    """时间窗口里还没推过的文章：按所选分类过滤，链接或标题相同的只留最新一篇，新的在前"""
+    """窗口内所选分类的全部未推文章；事件去重仅用于精选，不删网页版文章。"""
     cats = prefs.get("freshrss").get("categories") or []
     rows = db.scalars(select(Article).where(Article.crawled >= start, Article.crawled < end, Article.first_issue.is_(None))
                       .order_by(Article.crawled.desc(), Article.id.desc())).all()
-    out, seen = [], set()
+    out = []
     for a in rows:
         if cats and (a.category or UNCATEGORIZED) not in cats:
             continue
-        keys = {k for k in (("u:" + a.url.split("#")[0].rstrip("/")) if a.url else "", "t:" + _norm(a.title)) if len(k) > 3}
-        if keys & seen:
-            continue
-        seen |= keys
         out.append(a)
     return out
 
@@ -118,14 +110,7 @@ def build(db, kind: str, start: int, end: int, ai_transport=None) -> dict:
     arts = collect(db, start, end)
     data = {"kind": kind, "window_start": start, "window_end": end, "total": len(arts),
             "sections": group(arts), "ai_points": None, "ai_error": None, "_ids": [a.id for a in arts]}
-    cfg = prefs.get("ai")
-    if cfg.get("enabled") and arts:
-        try:
-            points, picked = ai.summarize(cfg, [{**_item(a), "category": a.category} for a in arts], transport=ai_transport)
-            data["ai_points"] = [{"text": p["text"], "refs": [{"title": picked[r - 1]["title"], "url": picked[r - 1]["url"]}
-                                                             for r in p["refs"]]} for p in points]
-        except ai.AIError as e:
-            data["ai_error"] = str(e)[:300]
+    data["highlights"] = highlights.select(data["sections"], end)
     return data
 
 
@@ -133,7 +118,7 @@ def save(db, data: dict) -> Issue:
     """存成一期，并把这些文章标记为已推过"""
     it = Issue(kind=data["kind"], window_start=data["window_start"], window_end=data["window_end"],
                created=int(time.time()), total=data["total"],
-               content=json.dumps({"sections": data["sections"]}, ensure_ascii=False),
+               content=json.dumps({"sections": data["sections"], "highlights": data.get("highlights")}, ensure_ascii=False),
                ai_points=json.dumps(data["ai_points"], ensure_ascii=False) if data["ai_points"] is not None else None,
                ai_error=data["ai_error"], token=secrets.token_urlsafe(12), status="pending" if data["total"] else "empty")
     db.add(it)
@@ -146,8 +131,10 @@ def save(db, data: dict) -> Issue:
 
 def issue_dict(it: Issue, with_token: bool = False) -> dict:
     content = json.loads(it.content or "{}")
+    sections = content.get("sections") or []
     out = {"id": it.id, "kind": it.kind, "window_start": it.window_start, "window_end": it.window_end,
-           "created": it.created, "total": it.total, "sections": content.get("sections") or [],
+           "created": it.created, "total": it.total, "sections": sections,
+           "highlights": content.get("highlights") if content.get("highlights") is not None else highlights.select(sections, it.window_end),
            "ai_points": json.loads(it.ai_points) if it.ai_points else None, "ai_error": it.ai_error, "status": it.status}
     if with_token:
         out["token"] = it.token
@@ -192,35 +179,22 @@ def _bold(s: str, fmt: str) -> str:
     return {"html": f"<b>{_esc(s, fmt)}</b>", "md": f"**{s}**", "slack": f"*{s}*"}.get(fmt, s)
 
 
-def units(d: dict, fmt: str, per_category: int, link: str = "", with_header: bool = True) -> list[tuple[str, str]]:
+def units(d: dict, fmt: str, per_category: int = highlights.PER_CATEGORY, link: str = "", with_header: bool = True) -> list[tuple[str, str]]:
     """一期拆成排版好的小块 [(所属段落标题, 文本)]，拆分消息时按块装箱；段落标题用于续页时重复小标题"""
     br = "\n\n" if fmt == "md" else "\n"     # 钉钉 / 企业微信的 Markdown 要空一行才换行
     out: list[tuple[str, str]] = []
-    cats = len(d["sections"])
-    stat = f"共 {d['total']} 条，来自 {cats} 个分类"
-    if any(len(s["items"]) > per_category for s in d["sections"]):
-        stat += f"，每个分类最多列 {per_category} 条"
+    sections = d.get("highlights")
+    if sections is None:
+        sections = highlights.select(d["sections"], d["window_end"])
+    cats = len(sections)
+    count = sum(len(s["items"][:highlights.PER_CATEGORY]) for s in sections)
+    stat = f"共 {d['total']} 篇报道，来自 {cats} 个分类，精选 {count} 件事"
     out.append(("", (_bold(headline(d), fmt) + br if with_header else "") + _esc(stat, fmt)))
-    if d.get("ai_points"):
-        out.append(("ai", _bold("【今日要点】", fmt)))
-        for i, p in enumerate(d["ai_points"], 1):
-            ref = (p.get("refs") or [None])[0]
-            line = f"{i}. {_esc(p['text'], fmt)}"
-            if ref and ref.get("url"):
-                line += f"（{_link('原文', ref['url'], fmt)}）" if fmt != "text" else f"\n   {ref['url']}"
-            out.append(("ai", line))
-    elif d.get("ai_error"):
-        out.append(("", _esc(f"（AI 要点生成失败：{d['ai_error']}；本期只列标题）", fmt)))
-    for s in d["sections"]:
-        n = len(s["items"])
-        head = f"【{s['category']}】" + (f"（共 {n} 条）" if n > per_category else "")
+    for s in sections:
+        head = f"【{s['category']}】"
         out.append((s["category"], _bold(head, fmt)))
-        for i, it in enumerate(s["items"][:per_category], 1):
+        for i, it in enumerate(s["items"][:highlights.PER_CATEGORY], 1):
             line = f"{i}. {_link(it['title'], it['url'], fmt)}"
-            if it.get("source"):
-                line += f" — {_esc(it['source'], fmt)}"
-            if it.get("summary"):
-                line += ("  \n" if fmt == "md" else "\n") + "   " + _esc(it["summary"], fmt)
             if fmt == "text" and it.get("url"):
                 line += "\n   " + it["url"]
             out.append((s["category"], line))
@@ -278,9 +252,8 @@ def split(us: list[tuple[str, str]], limit: tuple[int, str] | None, fmt: str) ->
 def messages(d: dict, t: str, c: dict, token: str | None = None) -> list[tuple[str, str]]:
     """一期在某个渠道上的消息列表 [(标题, 正文)]"""
     fmt = notify.fmt_of(t, c)
-    per = int(prefs.get("schedule").get("per_category") or 10)
     with_header = t not in notify.TITLE_FIELD
-    bodies = split(units(d, fmt, per, public_link(d, token), with_header), notify.limit_of(t, c), fmt)
+    bodies = split(units(d, fmt, link=public_link(d, token), with_header=with_header), notify.limit_of(t, c), fmt)
     title = headline(d)
     if len(bodies) == 1:
         return [(title, bodies[0])]

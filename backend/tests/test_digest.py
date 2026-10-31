@@ -95,9 +95,9 @@ def test_collect_dedupe_and_categories(db):
     ])
     digest.sync(db, t0 - 1, fake.client())
     arts = digest.collect(db, t0 - 1, t0 + 3600)
-    assert [a.title for a in arts] == ["没分类的", "另一条", "同一条新闻！"]
+    assert [a.title for a in arts] == ["没分类的", "另一条", "同一条新闻！", "同一条新闻"]
     secs = digest.group(arts)
-    assert [s["category"] for s in secs] == ["科技", "未分类"] and len(secs[0]["items"]) == 2
+    assert [s["category"] for s in secs] == ["科技", "未分类"] and len(secs[0]["items"]) == 3
     assert digest.sync(db, t0 - 1, fake.client()) == 0     # 已有的不重复存
 
 
@@ -112,8 +112,8 @@ def test_run_flow_marks_and_pushes(db, sent):
     assert db.query(Article).filter(Article.first_issue == it.id).count() == 6
     assert len(sent) == 1 and sent[0][0] == "telegram" and sent[0][3] == "html"
     body = sent[0][2]
-    assert body.startswith("<b>我的新闻 · 早报 · 10月29日 周四</b>") and "共 6 条，来自 2 个分类" in body
-    assert '<a href="https://news.example.com/6">新闻标题 6</a> — 示例源' in body and "窗口之前的" not in body
+    assert body.startswith("<b>我的新闻 · 早报 · 10月29日 周四</b>") and "共 6 篇报道，来自 2 个分类，精选 6 件事" in body
+    assert '<a href="https://news.example.com/6">新闻标题 6</a>' in body and "窗口之前的" not in body
     dv = db.query(Delivery).filter(Delivery.issue_id == it.id).one()
     assert dv.ok == 1 and dv.parts == 1 and dv.attempts == 1
     # 同一期再跑一次：不重复生成、不重复推送
@@ -156,9 +156,9 @@ def _issue(n_per_cat=3, cats=("科技", "国际"), total=None):
 def test_render_formats():
     d = _issue()
     text = "\n\n".join(t for _, t in digest.units(d, "text", 2, "https://news.me/i/7?t=abc"))
-    assert text.startswith("我的新闻 · 晚报 · 10月29日 周四\n共 6 条，来自 2 个分类，每个分类最多列 2 条")
-    assert "【科技】（共 3 条）" in text and "1. 科技标题<1> — 源\n   摘要" in text and "   https://x.com/科技/1" in text
-    assert "科技标题<3>" not in text and text.endswith("查看全部 6 条 → https://news.me/i/7?t=abc")
+    assert text.startswith("我的新闻 · 晚报 · 10月29日 周四\n共 6 篇报道，来自 2 个分类，精选 6 件事")
+    assert "【科技】" in text and "1. 科技标题<1>\n   https://x.com/科技/1" in text and "摘要" not in text
+    assert "科技标题<3>" in text and text.endswith("查看全部 6 条 → https://news.me/i/7?t=abc")
     html = "\n".join(t for _, t in digest.units(d, "html", 5))
     assert '<a href="https://x.com/科技/1">科技标题&lt;1&gt;</a>' in html
     md = "\n".join(t for _, t in digest.units(d, "md", 5))
@@ -170,8 +170,10 @@ def test_render_formats():
 
 
 def test_split_long_issue_keeps_section_heads():
-    d = _issue(n_per_cat=40)
-    us = digest.units(d, "text", 40)
+    us = []
+    for cat in ("科技", "国际"):
+        us.append((cat, f"【{cat}】"))
+        us.extend((cat, f"{i}. {cat}标题<{i}>" + "新闻要点" * 12) for i in range(1, 41))
     parts = digest.split(us, (1900, "bytes"), "text")
     assert len(parts) > 3 and all(len(p.encode()) <= 1900 for p in parts)
     joined = "\n\n".join(parts)
@@ -183,13 +185,16 @@ def test_split_long_issue_keeps_section_heads():
     assert any("（续）" in p.splitlines()[0] for p in parts[1:])
     whole = digest.split(us, None, "text")[0]
     assert "【科技】\n1. 科技标题<1>" in whole and "\n\n【国际】" in whole   # 段内紧挨，段间空行
-    md = digest.split(digest.units(d, "md", 40), None, "md")[0]
-    assert "**【科技】**\n\n1. [科技标题<1>]" in md                          # Markdown 要空行才换行
+    md = digest.split(us, None, "md")[0]
+    assert "【科技】\n\n1. 科技标题<1>" in md                          # Markdown 要空行才换行
 
 
 def test_messages_numbering(db):
     setup_prefs(db, per_category=40)
     d = _issue(n_per_cat=40)
+    for section in d["sections"]:
+        for row in section["items"]:
+            row["title"] += "成功发射进入预定轨道" * 8
     msgs = digest.messages(d, "wecom", {"msg_type": "text"})
     assert len(msgs) > 1 and msgs[1][0].endswith(f"（2/{len(msgs)}）") and msgs[1][1].startswith(f"（2/{len(msgs)}）")
     one = digest.messages(d, "email", {})
@@ -197,25 +202,16 @@ def test_messages_numbering(db):
 
 
 # ---------------- AI ----------------
-def test_ai_points(db, sent):
+def test_old_ai_settings_are_ignored(db):
     setup_prefs(db)
-    enable_telegram(db)
     prefs.put(db, "ai", {"enabled": True, "base_url": "https://ai.example.com/v1", "api_key": "sk-test", "model": "m"})
     db.commit()
-    fake = FakeFreshRSS([item(1, ts(2026, 10, 29, 9), title="甲"), item(2, ts(2026, 10, 29, 9, 5), title="乙", cat="国际")])
-    t = ai_transport()
+    fake = FakeFreshRSS([item(1, ts(2026, 10, 29, 9), title="科学考察队完成南极科考任务")])
+    transport = ai_transport()
     digest.sync(db, ts(2026, 10, 29, 0), fake.client())
-    data = digest.build(db, "manual", ts(2026, 10, 29, 0), ts(2026, 10, 29, 12), ai_transport=t)
-    assert t.seen["auth"] == "Bearer sk-test" and t.seen["body"]["model"] == "m"
-    assert data["ai_points"][0]["text"] == "要点一：重要进展" and len(data["ai_points"][0]["refs"]) == 1
-    assert data["ai_points"][1]["refs"] and all(r["url"] for p in data["ai_points"] for r in p["refs"])   # 编号 99 越界丢掉
-    text = "\n".join(x for _, x in digest.units({**data, "id": 1}, "text", 10))
-    assert "【今日要点】\n1. 要点一：重要进展\n   https://news.example.com/" in text
-
-    bad = digest.build(db, "manual", ts(2026, 10, 29, 0), ts(2026, 10, 29, 12), ai_transport=ai_transport(status=429))
-    assert bad["ai_points"] is None and "429" in bad["ai_error"]
-    text = "\n".join(x for _, x in digest.units({**bad, "id": 1}, "text", 10))
-    assert "AI 要点生成失败" in text and "甲" in text
+    data = digest.build(db, "manual", ts(2026, 10, 29, 0), ts(2026, 10, 29, 12), ai_transport=transport)
+    assert transport.seen == {} and data["ai_points"] is None
+    assert data["highlights"][0]["items"][0]["title"] == "科学考察队完成南极科考任务"
 
 
 def test_ai_parse_fallback():

@@ -45,7 +45,7 @@ def test_settings_mask_and_encrypt(db):
         bad = c.put("/api/settings/freshrss", headers=h, json={**r, "url": "https://evil.example.com"})
         assert bad.status_code == 400 and "重新填写" in bad.json()["detail"]
 
-        r = c.put("/api/settings/ai", headers=h, json={"enabled": True, "base_url": "https://api.deepseek.com/v1",
+        r = c.put("/api/settings/ai", headers=h, json={"enabled": False, "base_url": "https://api.deepseek.com/v1",
                                                        "api_key": "sk-1234567890", "model": "deepseek-chat"}).json()
         assert r["api_key"] == "sk-1…" and prefs.get("ai")["api_key"] == "sk-1234567890"
         assert c.put("/api/settings/ai", headers=h, json={"enabled": True, "base_url": "", "api_key": "", "model": ""}).status_code == 400
@@ -55,7 +55,7 @@ def test_settings_mask_and_encrypt(db):
         assert s.status_code == 400
         s = c.put("/api/settings/schedule", headers=h, json={"morning_on": True, "morning": "07:30", "evening_on": False,
                                                              "evening": "20:00", "per_category": 5}).json()
-        assert s["morning"] == "07:30" and s["per_category"] == 5
+        assert s["morning"] == "07:30" and s["per_category"] == 8
         assert c.put("/api/settings/site", headers=h, json={"public_url": "news.me", "retention_days": 10}).status_code == 400
 
 
@@ -95,6 +95,7 @@ def test_issues_and_public_page(db, monkeypatch):
         assert c.get(f"/api/public/issues/{it.id}", params={"t": "wrongtoken"}).status_code == 404
         pub = c.get(f"/api/public/issues/{it.id}", params={"t": it.token}).json()
         assert pub["total"] == 3 and "token" not in pub and "deliveries" not in pub
+        assert pub["highlights"] == full["highlights"]
         r = c.post(f"/api/issues/{it.id}/repush", headers=h, json={"channels": ["bark"]}).json()
         assert r["status"] == "sent" and len(sent) == 2
         ov = c.get("/api/overview", headers=h).json()
@@ -107,3 +108,18 @@ def test_push_requires_config(db):
         r = c.post("/api/issues/push", headers=h, json={"kind": "manual"})
         assert r.status_code == 400 and "FreshRSS" in r.json()["detail"]
         assert c.post("/api/issues/preview", headers=h, json={"kind": "manual"}).status_code == 400
+
+
+def test_local_mode_ignores_legacy_settings(db, monkeypatch):
+    from app import ai
+    monkeypatch.setattr(ai, "summarize", lambda *a, **kw: (_ for _ in ()).throw(AssertionError("AI called")))
+    prefs.put(db, "ai", {"enabled": True, "api_key": "legacy-key"})
+    prefs.put(db, "schedule", {"per_category": 50})
+    db.commit()
+    with TestClient(app) as c:
+        h = login(c)
+        assert c.get("/api/settings/schedule", headers=h).json()["per_category"] == 8
+        assert c.get("/api/settings/ai", headers=h).json()["enabled"] is False
+        assert c.get("/api/overview", headers=h).json()["ai"] is False
+        assert c.put("/api/settings/ai", headers=h, json={"enabled": True}).status_code == 400
+        assert c.post("/api/settings/ai/test", headers=h, json={}).status_code == 400

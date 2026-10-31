@@ -32,7 +32,7 @@ def overview(db: Session = Depends(get_db)):
     fr = prefs.get("freshrss")
     last = db.scalar(select(Issue).order_by(Issue.id.desc()).limit(1))
     return {"freshrss": bool(fr["url"] and fr["username"] and fr["api_password"]),
-            "channels": notify.enabled_types(), "ai": prefs.get("ai")["enabled"],
+            "channels": notify.enabled_types(), "ai": False,
             "next": scheduler.next_runs(), "last": _summary(last) if last else None}
 
 
@@ -127,5 +127,5 @@ def public_issue(issue_id: int, t: str = Query(..., min_length=8, max_length=64)
     if it is None or not it.token or not hmac.compare_digest(it.token, t):
         raise HTTPException(404, "链接无效或这一期已过期")
     d = digest.issue_dict(it)
-    return {k: d[k] for k in ("id", "kind", "window_start", "window_end", "created", "total", "sections", "ai_points", "ai_error")}
+    return {k: d[k] for k in ("id", "kind", "window_start", "window_end", "created", "total", "sections", "highlights", "ai_points", "ai_error")}
 

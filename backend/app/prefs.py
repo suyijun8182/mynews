@@ -21,7 +21,7 @@ _PREFIX = "enc:"
 
 DEFAULTS: dict[str, dict] = {
     "freshrss": {"url": "", "username": "", "api_password": "", "categories": []},
-    "schedule": {"morning_on": True, "morning": "08:00", "evening_on": True, "evening": "20:00", "per_category": 10},
+    "schedule": {"morning_on": True, "morning": "08:00", "evening_on": True, "evening": "20:00", "per_category": 8},
     "ai": {"enabled": False, "base_url": "https://api.deepseek.com/v1", "api_key": "", "model": "deepseek-chat"},
     "site": {"public_url": "", "retention_days": 10},
 }

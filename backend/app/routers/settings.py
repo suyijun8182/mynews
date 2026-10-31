@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app import __version__, ai, freshrss, notify, prefs, scheduler
+from app import __version__, freshrss, notify, prefs, scheduler
 from app.database import get_db
 from app.security import current_user
 
@@ -74,19 +74,19 @@ class ScheduleIn(BaseModel):
     morning: str = Field("08:00", pattern=HM)
     evening_on: bool = True
     evening: str = Field("20:00", pattern=HM)
-    per_category: int = Field(10, ge=1, le=50)
+    per_category: int = Field(8, ge=1, le=50)  # 兼容旧客户端传参，实际固定为 8 件事
 
 
 @router.get("/settings/schedule")
 def get_schedule():
-    return {**prefs.get("schedule"), "next": scheduler.next_runs()}
+    return {**prefs.get("schedule"), "per_category": 8, "next": scheduler.next_runs()}
 
 
 @router.put("/settings/schedule")
 def put_schedule(req: ScheduleIn, db: Session = Depends(get_db)):
     if req.morning_on and req.evening_on and req.morning == req.evening:
         raise HTTPException(400, "早报和晚报的时间不能相同")
-    prefs.put(db, "schedule", req.model_dump())
+    prefs.put(db, "schedule", {**req.model_dump(), "per_category": 8})
     db.commit()
     scheduler.reschedule()
     return get_schedule()
@@ -112,15 +112,15 @@ def _ai_cfg(req: AIIn) -> dict:
 
 @router.get("/settings/ai")
 def get_ai():
-    return prefs.masked("ai")
+    return {**prefs.masked("ai"), "enabled": False}
 
 
 @router.put("/settings/ai")
 def put_ai(req: AIIn, db: Session = Depends(get_db)):
+    if req.enabled:
+        raise HTTPException(400, "已改为本地分类精选，不再调用 AI")
     _url_ok(req.base_url, "接口地址")
     cfg = _ai_cfg(req)
-    if cfg["enabled"] and not (cfg["base_url"] and cfg["api_key"] and cfg["model"]):
-        raise HTTPException(400, "开启 AI 摘要要填写接口地址、API Key 和模型")
     v = prefs.put(db, "ai", cfg)
     db.commit()
     return prefs.masked("ai", v)
@@ -128,15 +128,7 @@ def put_ai(req: AIIn, db: Session = Depends(get_db)):
 
 @router.post("/settings/ai/test")
 def test_ai(req: AIIn):
-    """用两条示例新闻试一次，确认接口、Key、模型都能用"""
-    _url_ok(req.base_url, "接口地址")
-    sample = [{"title": "示例：某地发布新一轮城市更新计划", "summary": "计划覆盖老旧小区改造与公共交通。", "category": "国内", "url": ""},
-              {"title": "示例：开源社区发布新版本编程语言", "summary": "新版本带来性能改进和新语法。", "category": "科技", "url": ""}]
-    try:
-        points, _ = ai.summarize(_ai_cfg(req), sample)
-    except ai.AIError as e:
-        raise HTTPException(400, str(e))
-    return {"ok": True, "points": points}
+    raise HTTPException(400, "已改为本地分类精选，不再调用 AI")
 
 
 # ---------------- 站点 ----------------

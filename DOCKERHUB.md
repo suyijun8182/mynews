@@ -36,8 +36,8 @@ curl -fsSL https://raw.githubusercontent.com/suyijun8182/mynews/main/install.sh 
 ## 功能
 
 - 早报 08:00 / 晚报 20:00（可改、可关），按「进入 FreshRSS 的时间」划窗口，每篇只推一次
-- 按 FreshRSS 分类分组，每个分类最多 N 条，链接 / 标题去重，可只选部分分类
-- 可选 AI「今日要点」：OpenAI 兼容接口（DeepSeek、通义千问、Kimi、Ollama）
+- 按 FreshRSS 分类归并相似报道，每类最多 8 件事，只发送代表标题与链接，网页保留全部新闻
+- 本地精选：综合来源覆盖、信息量和时效性排序，不调用 AI
 - 14 种渠道，和 EasySub 一致；超长自动拆分，失败重试 3 次，网页上可重推
 - 网页版：本期报纸式版面、历史期、推送记录、「查看全部」只读链接
 - 只读 FreshRSS（API 密码），密钥加密存储；数据保留 10 天（可改）
@@ -59,6 +59,8 @@ docker compose pull && docker compose up -d
 ```
 
 ## What's new
+
+- **0.1.2**: 本地归并与精选，每类最多 8 件事，只发标题和链接；网页保留全部报道，不调用 AI。Local highlights: up to 8 events per category, headlines and links only, no AI calls.
 
 - **0.1.1**: 修复新闻较多时立即推送出现 DataError；启动时自动扩大旧数据库的整期内容字段，无需手动执行 SQL。Fix large digest storage on MySQL; automatically migrate existing databases.
 

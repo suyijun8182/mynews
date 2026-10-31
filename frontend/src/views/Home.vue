@@ -24,7 +24,7 @@
               <ChevronRight :size="18" aria-hidden="true" /></button>
           </div>
           <button v-if="previewing" class="btn sm" @click="exitPreview">{{ t('home.exitPreview') }}</button>
-          <button class="btn sm" :disabled="busy" @click="preview"><Eye :size="16" aria-hidden="true" />{{ busy === 'preview' ? t('common.loading') : t('home.preview') }}</button>
+          <button class="btn sm" :disabled="!!busy" @click="preview"><Eye :size="16" aria-hidden="true" />{{ busy === 'preview' ? t('common.loading') : t('home.preview') }}</button>
           <button class="btn sm primary" :disabled="busy || !ov || !ov.channels.length" @click="push">
             <Send :size="16" aria-hidden="true" />{{ busy === 'push' ? t('home.pushing') : t('home.push') }}</button>
         </template>
@@ -41,7 +41,7 @@
         <h1>{{ t('home.noIssue') }}</h1>
         <p class="muted">{{ t('home.noIssueHint', { m: nextText }) }}</p>
         <div class="acts">
-          <button class="btn" :disabled="busy" @click="preview"><Eye :size="16" aria-hidden="true" />{{ busy === 'preview' ? t('common.loading') : t('home.preview') }}</button>
+          <button class="btn" :disabled="!!busy" @click="preview"><Eye :size="16" aria-hidden="true" />{{ busy === 'preview' ? t('common.loading') : t('home.preview') }}</button>
           <button class="btn primary" :disabled="busy || !ov || !ov.channels.length" @click="push"><Send :size="16" aria-hidden="true" />{{ t('home.push') }}</button>
         </div>
       </div>

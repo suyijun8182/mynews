@@ -8,6 +8,7 @@ export default {
     count: '{n} stories · {c} categories', none: 'No new articles in this issue.', points: 'Top stories', source: 'Source',
     aiFailed: 'AI summary failed: {e}. This issue lists headlines only.',
   },
+  local: { title: 'Category highlights', all: 'All articles', lead: 'Similar reports are grouped locally into up to 8 events per category. Pushes contain representative headlines and links, without article excerpts or AI calls.', ranking: 'Events are ranked by publisher coverage, information content and freshness. Ads and reposts receive lower priority. All reports remain available on the web.' },
   time: { now: 'just now', min: '{n} min ago', hour: '{n} h ago', day: '{n} d ago' },
   common: { loading: 'Loading…', save: 'Save', saved: 'Saved', saving: 'Saving…', testing: 'Testing…', cancel: 'Cancel', delete: 'Delete' },
   home: {
@@ -34,7 +35,7 @@ export default {
     how3: 'Enter the username and that API password here. MyNews only reads articles and never changes read state.',
     test: 'Test connection', ok: 'Connected, {n} categories found.',
   },
-  set: { tab: { freshrss: 'FreshRSS', categories: 'Categories', schedule: 'Schedule', channels: 'Push channels', ai: 'AI summary', system: 'System' } },
+  set: { tab: { freshrss: 'FreshRSS', categories: 'Categories', schedule: 'Schedule', channels: 'Push channels', ai: 'Local highlights', system: 'System' } },
   cat: {
     lead: 'Choose which FreshRSS categories to include. With nothing ticked, every category is included, new ones too.',
     all: 'All categories', needFresh: 'Fill in and save the FreshRSS connection first.', uncat: 'Uncategorized',
@@ -42,7 +43,7 @@ export default {
   sched: {
     lead: 'Issues are collected and pushed automatically. Each article is sent once; if the service was down at push time it catches up within an hour.',
     cover: { morning: 'Covers from the evening issue until now', evening: 'Covers from the morning issue until now', morning1: 'Covers the past 24 hours', evening1: 'Covers the past 24 hours' },
-    next: 'Next {t}', per: 'Stories per category', perHint: 'Only limits the push message; the full web version is never cut.',
+    next: 'Next {t}', per: 'Stories per category', perHint: 'Up to 8 events per category, with headlines and links only. All articles remain on the web.',
   },
   ai: {
     lead: 'When on, each message starts with 5–8 "Top stories". Any OpenAI-compatible API works: DeepSeek, Qwen, Kimi, local Ollama. If the call fails the headlines are still pushed.',

@@ -8,6 +8,7 @@ export default {
     count: '共 {n} 条 · {c} 个分类', none: '这一期没有新文章。', points: '今日要点', source: '原文',
     aiFailed: 'AI 要点生成失败：{e}。本期只列标题。',
   },
+  local: { title: '分类要点', all: '全部新闻', lead: '自动在本地合并重复事件，每个类别最多精选 8 件事；只展示代表标题和阅读链接，不调用 AI，也不发送正文。', ranking: '综合来源覆盖、信息量和时效性排序，降低广告和重复转载的优先级。网页版保留全部报道。' },
   time: { now: '刚刚', min: '{n} 分钟前', hour: '{n} 小时前', day: '{n} 天前' },
   common: { loading: '加载中…', save: '保存', saved: '已保存', saving: '保存中…', testing: '测试中…', cancel: '取消', delete: '删除' },
   home: {
@@ -33,7 +34,7 @@ export default {
     how3: '回到这里填用户名和刚才的 API 密码。本项目只读取文章，不会改动已读状态。',
     test: '测试连接', ok: '连接成功，读到 {n} 个分类。',
   },
-  set: { tab: { freshrss: 'FreshRSS', categories: '分类', schedule: '早晚报', channels: '推送渠道', ai: 'AI 摘要', system: '系统' } },
+  set: { tab: { freshrss: 'FreshRSS', categories: '分类', schedule: '早晚报', channels: '推送渠道', ai: '分类精选', system: '系统' } },
   cat: {
     lead: '选择要汇总哪些 FreshRSS 分类。不勾选任何分类就是全部汇总，新加的分类也会自动包含。',
     all: '全部分类', needFresh: '请先在 FreshRSS 页填写并保存连接信息。', uncat: '未分类',
@@ -41,7 +42,7 @@ export default {
   sched: {
     lead: '到点自动汇总并推送。每篇文章只推一次；服务在推送时间停机的话，1 小时内恢复还会补发。',
     cover: { morning: '覆盖前一天晚报之后到早报时间', evening: '覆盖早报之后到晚报时间', morning1: '覆盖过去 24 小时', evening1: '覆盖过去 24 小时' },
-    next: '下次 {t}', per: '每个分类最多列几条', perHint: '只影响推送消息的长度；网页上的完整版不截断。',
+    next: '下次 {t}', per: '每个分类最多列几条', perHint: '每个类别最多精选 8 件事，只推送要点和链接；网页保留全部新闻。',
   },
   ai: {
     lead: '开启后，每期消息最上面会多一段「今日要点」（5～8 条）。接口是 OpenAI 兼容格式，DeepSeek、通义千问、Kimi、本地 Ollama 都能用；调用失败时照常推送标题汇总。',
