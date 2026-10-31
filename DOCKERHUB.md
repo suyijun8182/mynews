@@ -60,6 +60,8 @@ docker compose pull && docker compose up -d
 
 ## What's new
 
+- **0.1.1**: 修复新闻较多时立即推送出现 DataError；启动时自动扩大旧数据库的整期内容字段，无需手动执行 SQL。Fix large digest storage on MySQL; automatically migrate existing databases.
+
 - **0.1.0**: 首个版本：FreshRSS 早晚报、按分类汇总与去重、可选 AI 今日要点、14 种推送渠道（自动排版拆分、失败重试）、网页版与「查看全部」只读链接、Docker（MySQL）与 Linux 一键安装（SQLite）。First release.
 
 维护者：suyijun8182 与 Claude Code · MIT

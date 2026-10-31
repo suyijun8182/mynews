@@ -121,18 +121,24 @@ def init_db(retries: int = 20, delay: float = 3.0):
 
 
 def add_missing_columns():
-    """升级时补上新版本新增的列和索引（create_all 只建新表，不改已有的表）。新增列一律可为空"""
+    """升级时补列、索引，并扩大整期内容容量（create_all 不改已有的表）。新增列一律可为空"""
     insp = inspect(engine)
     with engine.begin() as conn:
         for table in Base.metadata.sorted_tables:
             if not insp.has_table(table.name):
                 continue
-            have = {c["name"] for c in insp.get_columns(table.name)}
+            columns = insp.get_columns(table.name)
+            have = {c["name"] for c in columns}
             for col in table.columns:
                 if col.name not in have and col.nullable:
                     ctype = col.type.compile(dialect=engine.dialect)
                     conn.exec_driver_sql(f"ALTER TABLE `{table.name}` ADD COLUMN `{col.name}` {ctype} NULL")
                     print(f"[db] 已为 {table.name} 添加列 {col.name}", flush=True)
+            if engine.dialect.name == "mysql" and table.name == "issues":
+                for col in columns:
+                    if col["name"] == "content" and str(col["type"]).upper() in ("TINYTEXT", "TEXT", "MEDIUMTEXT"):
+                        conn.exec_driver_sql("ALTER TABLE `issues` MODIFY COLUMN `content` LONGTEXT NULL")
+                        print("[db] 已将 issues.content 扩大为 LONGTEXT", flush=True)
             have_idx = {i["name"] for i in insp.get_indexes(table.name)}
             for idx in table.indexes:
                 if idx.name and idx.name not in have_idx:

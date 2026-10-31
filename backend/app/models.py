@@ -1,4 +1,5 @@
 from sqlalchemy import BigInteger, Column, Index, Integer, String, Text
+from sqlalchemy.dialects.mysql import LONGTEXT
 
 from app.database import Base
 
@@ -45,7 +46,7 @@ class Issue(Base):
     window_end = Column(BigInteger, nullable=False)
     created = Column(BigInteger, nullable=False)
     total = Column(Integer, default=0)                   # 本期文章总数（不截断）
-    content = Column(Text)                               # JSON：{sections: [{category, items: [...]}]}
+    content = Column(Text().with_variant(LONGTEXT(), "mysql"))  # 整期 JSON，数百篇文章会超过 TEXT 的 64 KB
     ai_points = Column(Text)                             # JSON：[{text, refs: [文章序号]}]；没开 AI 时为空
     ai_error = Column(String(500))
     token = Column(String(32))                           # 「查看全部」只读链接的令牌
