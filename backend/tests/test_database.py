@@ -14,7 +14,9 @@ def test_issue_content_supports_large_mysql_digest():
     assert Issue.__table__.c.content.type.compile(dialect=sqlite.dialect()) == "TEXT"
 
 
-@pytest.mark.parametrize("existing_type", [mysql.TEXT(), mysql.MEDIUMTEXT(), mysql.LONGTEXT()])
+@pytest.mark.parametrize("existing_type", [mysql.TEXT(), mysql.MEDIUMTEXT(), mysql.LONGTEXT(),
+                                          mysql.TEXT(collation="utf8mb4_unicode_ci"),
+                                          mysql.LONGTEXT(collation="utf8mb4_unicode_ci")])
 def test_upgrade_existing_issue_content(db, monkeypatch, existing_type):
     inspector = inspect(database.engine)
     real_columns = inspector.get_columns

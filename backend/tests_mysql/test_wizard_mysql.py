@@ -4,6 +4,7 @@ import uuid
 
 import pytest
 from sqlalchemy import inspect
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.exc import DataError
 
 from fastapi.testclient import TestClient
@@ -61,8 +62,8 @@ def test_large_digest_and_legacy_content_upgrade():
             db.rollback()
         database.init_db(retries=1)
         database.init_db(retries=1)  # Repeated startup must be safe.
-        columns = {c["name"]: str(c["type"]) for c in inspect(database.engine).get_columns("issues")}
-        assert columns["content"] == "LONGTEXT"
+        columns = {c["name"]: c["type"] for c in inspect(database.engine).get_columns("issues")}
+        assert isinstance(columns["content"], LONGTEXT)
         with database.session() as db:
             assert db.get(Issue, old_id).content == '{"sections": []}'
             large = digest.save(db, data)

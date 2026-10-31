@@ -136,7 +136,7 @@ def add_missing_columns():
                     print(f"[db] 已为 {table.name} 添加列 {col.name}", flush=True)
             if engine.dialect.name == "mysql" and table.name == "issues":
                 for col in columns:
-                    if col["name"] == "content" and str(col["type"]).upper() in ("TINYTEXT", "TEXT", "MEDIUMTEXT"):
+                    if col["name"] == "content" and col["type"].__visit_name__.upper() in ("TINYTEXT", "TEXT", "MEDIUMTEXT"):
                         conn.exec_driver_sql("ALTER TABLE `issues` MODIFY COLUMN `content` LONGTEXT NULL")
                         print("[db] 已将 issues.content 扩大为 LONGTEXT", flush=True)
             have_idx = {i["name"] for i in insp.get_indexes(table.name)}
